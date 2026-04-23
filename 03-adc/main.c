@@ -15,9 +15,21 @@ static void on_get_temp(const char* args) {
     printf("%f\n", temperature);
 }
 
+static void on_tm_start(const char* args) {
+    adc_task_set_state(ADC_TASK_STATE_RUN);
+    printf("Telemetry started\n");
+}
+
+static void on_tm_stop(const char* args) {
+    adc_task_set_state(ADC_TASK_STATE_IDLE);
+    printf("Telemetry stopped\n");
+}
+
 static api_t device_api[] = {
     {"get_adc", on_get_adc, "Get ADC voltage"},
     {"get_temp", on_get_temp, "Get RP2040 temperature"},
+    {"tm_start", on_tm_start, "Start telemetry"},
+    {"tm_stop", on_tm_stop, "Stop telemetry"},
     {NULL, NULL, NULL}
 };
 
@@ -46,6 +58,7 @@ int main() {
         }
         
         led_task_handle();
+        adc_task_handle();
         sleep_ms(10);
     }
     
