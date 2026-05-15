@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.15)
 
+# Указываем путь к Pico SDK (замените путь на ваш, если нужно)
+set(PICO_SDK_PATH "C:/Users/Vika/Desktop/Repo/Pico/pico-sdk")
+
 set(PICO_BOARD pico)
 set(PICO_PLATFORM rp2040)
 
 include(pico_sdk_import.cmake)
 
-project(05-display)
+project(06-device)
 
 pico_sdk_init()
 

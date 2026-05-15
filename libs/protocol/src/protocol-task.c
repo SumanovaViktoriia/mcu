@@ -1,57 +1,37 @@
 #include "protocol-task.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
-static api_t* api = {0};
-static int commands_count = 0;
+static api_t* task_api = NULL;
 
-void protocol_task_init(api_t* device_api)
+void protocol_task_init(api_t* api)
 {
-    api = device_api;
-    commands_count = 0;
-    
-    if (api != NULL)
-    {
-        while (api[commands_count].command_name != NULL)
-        {
-            commands_count++;
-        }
-    }
-    
+    task_api = api;
 }
+
 void protocol_task_handle(char* command_string)
 {
-    if (!command_string)
+    if (command_string == NULL || task_api == NULL) return;
+    
+    char* space = strchr(command_string, ' ');
+    char* cmd = command_string;
+    char* args = "";
+    
+    if (space != NULL)
     {
-        return;
+        *space = '\0';
+        args = space + 1;
     }
-
-    const char* command_name = command_string;
-    const char* command_args = NULL;
-
-    char* space_symbol = strchr(command_string, ' ');
-
-    if (space_symbol)
+    
+    for (int i = 0; task_api[i].command_name != NULL; i++)
     {
-        *space_symbol = '\0';
-        command_args = space_symbol + 1;
-    }
-    else
-    {
-        command_args = "";
-    }
-
-    printf("Command: %s, Args: %s\n", command_name, command_args);
-
-    for (int i = 0; i < commands_count; i++)
-    {
-        if (strcmp(command_name, api[i].command_name) == 0)
+        if (strcmp(cmd, task_api[i].command_name) == 0)
         {
-            api[i].command_callback(command_args);
+            task_api[i].callback(args);
             return;
         }
     }
-
-    printf("Unknown command: '%s'\n", command_name);
-    return;
+    
+    printf("Unknown command: %s\n", cmd);
 }

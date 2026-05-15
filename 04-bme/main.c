@@ -4,7 +4,8 @@
 #include "hardware/i2c.h"
 #include "protocol-task.h"
 #include "led-task/led-task.h"
-#include "bme280.h"
+#include "stdio-task.h"
+#include "bme280-driver.h"
 
 #define DEVICE_NAME  "MyPicoDevice"
 #define DEVICE_VRSN  "1.0.0"
@@ -16,9 +17,7 @@ void led_off_callback(const char* args);
 void led_blink_callback(const char* args);
 void led_blink_set_period_ms_callback(const char* args);
 void help_callback(const char* args);
-void mem_callback(const char* args);
-void wmem_callback(const char* args);
-void read_regs_callback(const char* args);
+void read_reg_callback(const char* args);
 void write_reg_callback(const char* args);
 void temp_raw_callback(const char* args);
 void pres_raw_callback(const char* args);
@@ -45,16 +44,14 @@ api_t device_api[] =
     {"blink", led_blink_callback, "make LED blink"},
     {"set_period", led_blink_set_period_ms_callback, "set LED blink period in milliseconds"},
     {"help", help_callback, "print all available commands with descriptions"},
-    {"mem", mem_callback, "Read 32-bit value from memory address (hex)"},
-    {"wmem", wmem_callback, "Write 32-bit value to memory address (hex)"},
-    {"read_regs", read_regs_callback, "Read BME280 registers: read_regs <addr> <N>"},
-    {"write_reg", write_reg_callback, "Write BME280 register: write_reg <addr> <value>"},
-    {"temp_raw", temp_raw_callback, "Read raw temperature value"},
-    {"pres_raw", pres_raw_callback, "Read raw pressure value"},
-    {"hum_raw", hum_raw_callback, "Read raw humidity value"},
-    {"temp", temp_callback, "Read temperature in Celsius"},
-    {"pres", pres_callback, "Read pressure in hPa"},
-    {"hum", hum_callback, "Read humidity in percent"},
+    {"read_reg", read_reg_callback, "read BME280 registers: read_reg <addr> <N>"},
+    {"write_reg", write_reg_callback, "write BME280 register: write_reg <addr> <value>"},
+    {"temp_raw", temp_raw_callback, "read raw temperature value (20-bit)"},
+    {"pres_raw", pres_raw_callback, "read raw pressure value (20-bit)"},
+    {"hum_raw", hum_raw_callback, "read raw humidity value (16-bit)"},
+    {"temp", temp_callback, "read temperature in Celsius"},
+    {"pres", pres_callback, "read pressure in hPa"},
+    {"hum", hum_callback, "read humidity in percent"},
     {NULL, NULL, NULL},
 };
 
@@ -108,70 +105,27 @@ void help_callback(const char* args)
     }
 }
 
-extern char* stdio_task_handle(void);
-
-void mem_callback(const char* args) {
-    uint32_t address = 0;
-    if (sscanf(args, "%x", &address) != 1) {
-        printf("Usage: mem <hex_address>\n");
-        return;
-    }
-
-    volatile uint32_t* ptr = (volatile uint32_t*)address;
-    
-    uint32_t value = *ptr;
-    
-    printf("Value at address 0x%08x: 0x%08x (%u)\n", address, value, value);
-}
-
-void wmem_callback(const char* args) {
-    uint32_t address = 0;
-    uint32_t value = 0;
-    if (sscanf(args, "%x %x", &address, &value) != 2) {
-        printf("Usage: wmem <hex_address> <hex_value>\n");
-        return;
-    }
-    volatile uint32_t* ptr = (volatile uint32_t*)address;
-    
-    *ptr = value;
-    
-    uint32_t readback = *ptr;
-    printf("Written 0x%08x to address 0x%08x. Readback: 0x%08x\n", value, address, readback);
-}
-
-void read_regs_callback(const char* args)
+void read_reg_callback(const char* args)
 {
-    uint32_t addr = 0;
-    uint32_t N = 0;
+    unsigned int addr, count;
     
-    if (sscanf(args, "%x %u", &addr, &N) != 2)
+    if (sscanf(args, "%x %x", &addr, &count) != 2)
     {
-        printf("Error: invalid arguments. Usage: read_regs <addr> <N>\n");
+        printf("Usage: read_reg <addr_hex> <count_hex>\n");
+        printf("Example: read_reg D0 1\n");
         return;
     }
     
-    if (addr > 0xFF)
+    if (addr > 0xFF || count == 0 || count > 0xFF || addr + count > 0x100)
     {
-        printf("Error: addr must be <= 0xFF\n");
-        return;
-    }
-    
-    if (N > 0xFF)
-    {
-        printf("Error: N must be <= 0xFF\n");
-        return;
-    }
-    
-    if (addr + N > 0x100)
-    {
-        printf("Error: addr + N must be <= 0x100\n");
+        printf("Error: invalid address or count\n");
         return;
     }
     
     uint8_t buffer[256] = {0};
-    bme280_read_regs((uint8_t)addr, buffer, (uint8_t)N);
+    bme280_read_regs((uint8_t)addr, buffer, (uint8_t)count);
     
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < (int)count; i++)
     {
         printf("bme280 register [0x%X] = 0x%X\n", addr + i, buffer[i]);
     }
@@ -179,24 +133,17 @@ void read_regs_callback(const char* args)
 
 void write_reg_callback(const char* args)
 {
-    uint32_t addr = 0;
-    uint32_t value = 0;
+    unsigned int addr, value;
     
     if (sscanf(args, "%x %x", &addr, &value) != 2)
     {
-        printf("Error: invalid arguments. Usage: write_reg <addr> <value>\n");
+        printf("Usage: write_reg <addr_hex> <value_hex>\n");
         return;
     }
     
-    if (addr > 0xFF)
+    if (addr > 0xFF || value > 0xFF)
     {
-        printf("Error: addr must be <= 0xFF\n");
-        return;
-    }
-    
-    if (value > 0xFF)
-    {
-        printf("Error: value must be <= 0xFF\n");
+        printf("Error: invalid address or value\n");
         return;
     }
     
@@ -206,14 +153,14 @@ void write_reg_callback(const char* args)
 
 void temp_raw_callback(const char* args)
 {
-    uint16_t temp = bme280_read_temp_raw();
-    printf("%u\n", temp);
+    uint32_t temp = bme280_read_temp_raw();
+    printf("%lu\n", temp);
 }
 
 void pres_raw_callback(const char* args)
 {
-    uint16_t pres = bme280_read_pres_raw();
-    printf("%u\n", pres);
+    uint32_t pres = bme280_read_pres_raw();
+    printf("%lu\n", pres);
 }
 
 void hum_raw_callback(const char* args)
@@ -243,6 +190,9 @@ void hum_callback(const char* args)
 int main(void)
 {
     stdio_init_all();
+    sleep_ms(2000);
+    
+    stdio_task_init();
     
     i2c_init(i2c1, 100000);
     gpio_set_function(14, GPIO_FUNC_I2C);

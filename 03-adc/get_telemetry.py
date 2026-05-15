@@ -12,7 +12,7 @@ def read_value(ser):
             continue
 
 def main():
-    ser = serial.Serial(port='COM3', baudrate=115200, timeout=0.0)
+    ser = serial.Serial(port='COM6', baudrate=115200, timeout=0.0)
     
     if ser.is_open:
         print(f"Port {ser.name} opened")

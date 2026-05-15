@@ -1,7 +1,6 @@
 #include "led-task.h"
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
-#include <stdint.h>
 
 const uint LED_PIN = 25;
 uint LED_BLINK_PERIOD_US = 500000;

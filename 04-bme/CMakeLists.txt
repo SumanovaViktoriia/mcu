@@ -10,12 +10,12 @@ project(04-bme)
 pico_sdk_init()
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../libs/protocol ${CMAKE_CURRENT_BINARY_DIR}/protocol)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../libs/bme280 ${CMAKE_CURRENT_BINARY_DIR}/bme280)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../libs/bme280-driver ${CMAKE_CURRENT_BINARY_DIR}/bme280)
 
 add_executable(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/main.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/stdio-task/stdio-task.c
     ${CMAKE_CURRENT_SOURCE_DIR}/led-task/led-task.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/stdio-task/stdio-task.c
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -27,7 +27,9 @@ target_link_libraries(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../libs/protocol/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../libs/bme280/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../libs/bme280-driver/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/led-task
+    ${CMAKE_CURRENT_SOURCE_DIR}/stdio-task
 )
 
 pico_set_linker_script(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/memmap_rp2040.ld)

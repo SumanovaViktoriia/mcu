@@ -1,5 +1,5 @@
 add_library(bme280_driver STATIC
-    src/bme280.c
+    src/bme280-driver.c
 )
 
 target_include_directories(bme280_driver PUBLIC

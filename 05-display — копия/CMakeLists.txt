@@ -5,13 +5,20 @@ set(PICO_PLATFORM rp2040)
 
 include(pico_sdk_import.cmake)
 
-project(05-display)
+project(04-bme)
 
 pico_sdk_init()
 
+# Удаляем C++ файл из сборки принудительно
+set(PICO_CXX_ENABLE_EXCEPTIONS 0)
+set(PICO_CXX_ENABLE_RTTI 0)
+set(CMAKE_CXX_COMPILER_WORKS 1)
+
+# Переопределяем список файлов для компиляции (исключаем new_delete.cpp)
+set(CMAKE_CXX_COMPILER "gcc")
+
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../libs/protocol ${CMAKE_CURRENT_BINARY_DIR}/protocol)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../libs/bme280-driver ${CMAKE_CURRENT_BINARY_DIR}/bme280)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../libs/ili9341-driver ${CMAKE_CURRENT_BINARY_DIR}/ili9341-driver)
 
 add_executable(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/main.c
@@ -22,16 +29,13 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     pico_stdlib
     hardware_i2c
-    hardware_spi
     protocol
     bme280_driver
-    ili9341-driver
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../libs/protocol/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../libs/bme280-driver/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../libs/ili9341-driver/include
     ${CMAKE_CURRENT_SOURCE_DIR}/led-task
     ${CMAKE_CURRENT_SOURCE_DIR}/stdio-task
 )

@@ -7,8 +7,10 @@
 #define BME280_REG_config           0xF5
 #define BME280_REG_temp_msb         0xFA
 #define BME280_REG_temp_lsb         0xFB
+#define BME280_REG_temp_xlsb        0xFC
 #define BME280_REG_press_msb        0xF7
 #define BME280_REG_press_lsb        0xF8
+#define BME280_REG_press_xlsb       0xF9
 #define BME280_REG_hum_msb          0xFD
 #define BME280_REG_hum_lsb          0xFE
 
